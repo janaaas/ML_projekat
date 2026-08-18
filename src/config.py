@@ -34,3 +34,41 @@ KEPT_GAME_TYPES = (GAME_TYPE_REGULAR, GAME_TYPE_PLAYOFFS, GAME_TYPE_PLAY_IN)
 # nestaje, pa se mecevi pre i posle ovog datuma porede odvojeno.
 
 SEASON_SUSPENSION_DATE = "2020-03-11"
+
+# --- Hronoloska podela -----------------------------------------------------
+# Vrednost oznacava godinu pocetka sezone: 2016 je sezona 2016/17.
+# Podela je hronoloska, jer bi nasumicna znacila treniranje na buducnosti.
+#
+# Skup pokriva sezone 2003/04 do 22.12.2022. Sezona 2022/23 je nepotpuna i
+# ne koristi se. Sezone 2019/20 i 2020/21 su pod uticajem pandemije, pa se
+# drze van glavnog toka i analiziraju odvojeno u svesci 05 - time test ostaje
+# normalna sezona sa publikom, a anomalija postaje test robusnosti.
+
+LAST_TRAIN_SEASON = 2016
+LAST_VALIDATION_SEASON = 2018
+TEST_SEASON = 2021
+
+ANOMALY_SEASONS = (2019, 2020)
+UNUSED_SEASONS = (2022,)
+
+# --- Atributi i sekvence ---------------------------------------------------
+
+SEQUENCE_LENGTH = 10
+ROLLING_WINDOWS = (5, 10)
+
+# sirove statistike meca iz ugla jednog tima - osnova i za pokretne
+# proseke i za sirovi ulaz u sekvence
+RAW_STAT_COLUMNS = ["PTS", "FG_PCT", "FT_PCT", "FG3_PCT", "AST", "REB"]
+
+# atributi koji ulaze u sekvencu jednog proslog meca - sirove vrednosti,
+# ne pokretni proseci, da bi mreza sama naucila vremenski obrazac
+SEQUENCE_FEATURE_COLUMNS = RAW_STAT_COLUMNS + ["WON", "IS_HOME"]
+
+# kalendarski atributi tima na dan tekuceg meca - poznati unapred (raspored
+# je poznat pre poceta), pa ne traze shift(1) kao pokretni proseci
+CONTEXT_CALENDAR_COLUMNS = ["REST_DAYS", "GAMES_LAST_7_DAYS", "IS_SEASON_START"]
+
+# koristi se kao podrazumevana vrednost u add_head_to_head - mora da postoji
+# da bi se ceo modul features.py ucitao, i pre nego sto Jana implementira
+# telo te funkcije
+HEAD_TO_HEAD_GAMES = 5
