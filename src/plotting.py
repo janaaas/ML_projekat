@@ -1,7 +1,4 @@
-"""Jednoobrazan izgled grafika kroz ceo projekat.
-
-Vlasnik modula: Jana
-"""
+"""Jednoobrazan izgled grafika kroz ceo projekat."""
 
 from matplotlib import pyplot as plt
 

@@ -1,7 +1,4 @@
-"""Ucitavanje i osnovno ciscenje sirovih CSV datoteka.
-
-Vlasnik modula: Jana
-"""
+"""Ucitavanje i osnovno ciscenje sirovih CSV datoteka."""
 
 import pandas as pd
 

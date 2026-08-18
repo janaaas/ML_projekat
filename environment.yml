@@ -1,0 +1,38 @@
+# Okruzenje projekta - primarni nacin instalacije.
+#
+#     conda env create -f environment.yml
+#     conda activate ml-projekat
+#
+# Koristi se iskljucivo conda-forge kanal. Mesanje kanala pytorch i conda-forge
+# je cest izvor nerezivih konflikata u solveru.
+#
+# Verzija pytorch-cpu je 2.5.1, a ne starija: na conda-forge paket za Windows
+# ne postoji ni u jednoj verziji izmedju 1.1 i 2.5.1. Verzija 2.5.1 je prva
+# koja postoji za linux-64, linux-aarch64, osx-64, osx-arm64 i win-64.
+#
+# scipy je zakucan iako se ne uvozi direktno - tvrda je zavisnost i
+# scikit-learn-a i xgboost-a, a novije verzije traze numpy 2 i sudarile bi se
+# sa zakucanim numpy 1.26.
+#
+# Python je 3.11, a ne 3.12: na 3.12 pip i conda prvo pokusavaju scipy 1.18,
+# koji trazi numpy 2. Na 3.11 je iskljucen po requires_python.
+
+name: ml-projekat
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - numpy=1.26.4
+  - scipy=1.14.1
+  - pandas=2.2.3
+  - matplotlib-base=3.9.2
+  - seaborn=0.13.2
+  - scikit-learn=1.5.2
+  - xgboost=2.1.3
+  - pytorch-cpu=2.5.1
+  - joblib=1.4.2
+  - tqdm=4.66.5
+  - jupyterlab=4.2.5
+  - ipywidgets=8.1.5
