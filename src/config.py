@@ -72,3 +72,12 @@ CONTEXT_CALENDAR_COLUMNS = ["REST_DAYS", "GAMES_LAST_7_DAYS", "IS_SEASON_START"]
 # da bi se ceo modul features.py ucitao, i pre nego sto Jana implementira
 # telo te funkcije
 HEAD_TO_HEAD_GAMES = 5
+
+# --- Elo rejting -------------------------------------------------------
+# Vrednosti prate FiveThirtyEight-ovu metodologiju za NBA; K=20, prednost domaceg terena ~100 poena na Elo skali,
+# regresija ka proseku 1/3 na pocetku svake nove sezone.
+
+ELO_INITIAL = 1500
+ELO_K = 20
+ELO_HOME_BONUS = 100
+ELO_SEASON_REGRESSION = 1 / 3

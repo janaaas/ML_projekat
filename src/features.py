@@ -8,9 +8,19 @@ da zavisi iskljucivo od meceva odigranih strogo pre g. U praksi to znaci
 obavezan .shift(1) pre svakog .rolling(...).
 """
 
+import numpy as np
 import pandas as pd
 
-from src.config import HEAD_TO_HEAD_GAMES, RAW_STAT_COLUMNS, ROLLING_WINDOWS
+from src.config import (
+    ELO_HOME_BONUS,
+    ELO_INITIAL,
+    ELO_K,
+    ELO_SEASON_REGRESSION,
+    GAME_TYPE_REGULAR,
+    HEAD_TO_HEAD_GAMES,
+    RAW_STAT_COLUMNS,
+    ROLLING_WINDOWS,
+)
 
 
 def build_team_view(df_games):
@@ -96,25 +106,76 @@ def add_calendar_features(df_team_view):
     return df_team_view
 
 
-def compute_elo(df_games):
+def compute_elo(df_team_view):
     """Racuna Elo rejting oba tima pre svakog meca.
 
     Racunanje ide hronoloski kroz sve meceve, pa je po konstrukciji
     uzrocno. Kao atribut se koristi rejting PRE meca, a tek zatim se
     rejting azurira. Izmedju sezona rejtinzi se delimicno vracaju ka
     proseku, jer se sastavi timova menjaju.
+
+    Prednost domaceg terena (ELO_HOME_BONUS) ulazi u racunanje ocekivanog
+    ishoda pri azuriranju - standardna Elo praksa. Sama kolona ELO ipak ne
+    sadrzi taj bonus kao stalni pomeraj, vec cist rejting tima - IS_HOME je
+    zaseban atribut koji modelu vec govori ko je domacin u tekucem mecu.
     """
-    # TODO
-    raise NotImplementedError
+    df_team_view = df_team_view.sort_values(["GAME_DATE_EST", "GAME_ID"]).reset_index(drop=True)
+    row_by_game_team = {
+        (game_id, team_id): row_index
+        for row_index, (game_id, team_id) in enumerate(
+            zip(df_team_view["GAME_ID"], df_team_view["TEAM_ID"])
+        )
+    }
+    # jedan red po mecu (perspektiva domacina) je dovoljan da se dodje do
+    # oba tima preko TEAM_ID/OPPONENT_TEAM_ID - gost bi samo duplirao meceve
+    home_games = df_team_view[df_team_view["IS_HOME"] == 1].sort_values(["GAME_DATE_EST", "GAME_ID"])
+
+    current_elo = {}
+    last_season_played = {}
+    elo_pre_game = np.full(len(df_team_view), np.nan)
+
+    def _rating_before_game(team_id, season):
+        rating = current_elo.get(team_id, ELO_INITIAL)
+        if last_season_played.get(team_id) not in (None, season):
+            rating = ELO_INITIAL + (1 - ELO_SEASON_REGRESSION) * (rating - ELO_INITIAL)
+        last_season_played[team_id] = season
+        return rating
+
+    for game in home_games.itertuples():
+        home_id, away_id = game.TEAM_ID, game.OPPONENT_TEAM_ID
+        home_rating = _rating_before_game(home_id, game.SEASON)
+        away_rating = _rating_before_game(away_id, game.SEASON)
+
+        elo_pre_game[row_by_game_team[(game.GAME_ID, home_id)]] = home_rating
+        elo_pre_game[row_by_game_team[(game.GAME_ID, away_id)]] = away_rating
+
+        expected_home = 1 / (1 + 10 ** (-(home_rating + ELO_HOME_BONUS - away_rating) / 400))
+        actual_home = game.WON
+        change = ELO_K * (actual_home - expected_home)
+
+        current_elo[home_id] = home_rating + change
+        current_elo[away_id] = away_rating - change
+
+    df_team_view["ELO"] = elo_pre_game
+    return df_team_view
 
 
-def add_head_to_head(df_games, n_last=HEAD_TO_HEAD_GAMES):
+def add_head_to_head(df_team_view, n_last=HEAD_TO_HEAD_GAMES):
     """Dodaje procenat pobeda protiv istog protivnika u poslednjih n duela."""
-    # TODO
-    raise NotImplementedError
+    df_team_view = df_team_view.sort_values(
+        ["TEAM_ID", "OPPONENT_TEAM_ID", "GAME_DATE_EST"]
+    ).reset_index(drop=True)
+    grouped = df_team_view.groupby(["TEAM_ID", "OPPONENT_TEAM_ID"])
+
+    # isti obrazac kao pokretne statistike - shift(1) pa rolling, tako da
+    # duel g zavisi iskljucivo od ranijih duela sa istim protivnikom
+    df_team_view["HEAD_TO_HEAD_WIN_PCT"] = grouped["WON"].transform(
+        lambda s: s.shift(1).rolling(n_last, min_periods=1).mean()
+    )
+    return df_team_view.sort_values(["TEAM_ID", "GAME_DATE_EST"]).reset_index(drop=True)
 
 
-def add_standings_features(df_games, df_rankings):
+def add_standings_features(df_team_view, df_rankings):
     """Dodaje stanje na tabeli na dan meca, iz ranking.csv.
 
     ranking.csv je snimak stanja po danu, pa se spaja stanje sa datumom
@@ -124,5 +185,49 @@ def add_standings_features(df_games, df_rankings):
     Kolone HOME_RECORD i ROAD_RECORD su tekst oblika "28-8" i rastavljaju
     se na broj pobeda i broj poraza, odnosno na procenat pobeda.
     """
-    # TODO
-    raise NotImplementedError
+    df_rankings = df_rankings.copy()
+    season_id = df_rankings["SEASON_ID"].astype(str)
+
+    # SEASON_ID pocinje istom cifrom kao GAME_ID (1 pripremni, 2 regularna
+    # sezona) - pripremne meceve vec izbacujemo u clean_games jer ih igraju
+    # rezervni sastavi, pa isti razlog vazi i za stanje na tabeli iz njih.
+    df_rankings = df_rankings[season_id.str[0] == GAME_TYPE_REGULAR]
+
+    # preostale cifre nose godinu pocetka sezone, isto kodiranje kao SEASON
+    # u games.csv. Spajanje mora da postuje granicu sezone - inace bi prvi
+    # mecevi nove sezone preuzeli stanje sa kraja prethodne, koje vise ne
+    # vazi jer se tabela svake sezone resetuje.
+    df_rankings["SEASON"] = df_rankings["SEASON_ID"].astype(str).str[-4:].astype(int)
+
+    home_wins, home_losses = _split_record(df_rankings["HOME_RECORD"])
+    road_wins, road_losses = _split_record(df_rankings["ROAD_RECORD"])
+    df_rankings["STANDINGS_HOME_WIN_PCT"] = home_wins / (home_wins + home_losses)
+    df_rankings["STANDINGS_ROAD_WIN_PCT"] = road_wins / (road_wins + road_losses)
+    df_rankings = df_rankings.rename(columns={"W_PCT": "STANDINGS_WIN_PCT"})
+
+    standings_columns = ["STANDINGS_WIN_PCT", "STANDINGS_HOME_WIN_PCT", "STANDINGS_ROAD_WIN_PCT"]
+    df_rankings_sorted = df_rankings.sort_values("STANDINGSDATE")[
+        ["TEAM_ID", "SEASON", "STANDINGSDATE"] + standings_columns
+    ]
+
+    df_team_view = df_team_view.sort_values("GAME_DATE_EST").reset_index(drop=True)
+    df_merged = pd.merge_asof(
+        df_team_view,
+        df_rankings_sorted,
+        left_on="GAME_DATE_EST",
+        right_on="STANDINGSDATE",
+        by=["TEAM_ID", "SEASON"],
+        direction="backward",
+        allow_exact_matches=False,
+    )
+    return (
+        df_merged.drop(columns="STANDINGSDATE")
+        .sort_values(["TEAM_ID", "GAME_DATE_EST"])
+        .reset_index(drop=True)
+    )
+
+
+def _split_record(record_column):
+    """Rastavlja tekst oblika '28-8' na dva niza brojeva: pobede i porazi."""
+    wins_losses = record_column.str.split("-", expand=True).astype(int)
+    return wins_losses[0], wins_losses[1]
