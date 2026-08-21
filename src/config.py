@@ -13,6 +13,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 
 RAW_DATA_PATH = ROOT_DIR / "data" / "raw"
 FIGURES_PATH = ROOT_DIR / "reports" / "figures"
+RESULTS_FILE = ROOT_DIR / "reports" / "rezultati.csv"
 
 # --- Reproducibilnost ------------------------------------------------------
 
