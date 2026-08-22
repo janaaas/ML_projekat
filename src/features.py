@@ -235,6 +235,16 @@ def add_standings_features(df_team_view, df_rankings):
     ]
 
     df_team_view = df_team_view.sort_values("GAME_DATE_EST").reset_index(drop=True)
+
+    # merge_asof zahteva IDENTICAN tip za "by" kolone na obe strane. SEASON
+    # ovde gore prolazi kroz .astype(int), a taj je platformski zavisan (na
+    # Windowsu daje int32, na macOS/Linuxu int64) - pa spajanje puca sa
+    # "incompatible merge keys" iako su vrednosti iste. Eksplicitan int64
+    # na obe strane to uklanja bez obzira na platformu.
+    join_dtypes = {"TEAM_ID": "int64", "SEASON": "int64"}
+    df_team_view = df_team_view.astype(join_dtypes)
+    df_rankings_sorted = df_rankings_sorted.astype(join_dtypes)
+
     df_merged = pd.merge_asof(
         df_team_view,
         df_rankings_sorted,
