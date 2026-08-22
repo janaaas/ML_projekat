@@ -15,6 +15,13 @@ RAW_DATA_PATH = ROOT_DIR / "data" / "raw"
 FIGURES_PATH = ROOT_DIR / "reports" / "figures"
 RESULTS_FILE = ROOT_DIR / "reports" / "rezultati.csv"
 
+# pripremljeni tenzori iz sveske 02; sveska 04 ih samo ucitava umesto da
+# ponovo gradi sekvence
+PROCESSED_DATA_PATH = ROOT_DIR / "data" / "processed"
+
+# skaler iz sveske 02 i istrenirani modeli iz sveske 04
+MODELS_PATH = ROOT_DIR / "models"
+
 # --- Reproducibilnost ------------------------------------------------------
 
 RANDOM_STATE = 7
@@ -73,6 +80,12 @@ CONTEXT_CALENDAR_COLUMNS = ["REST_DAYS", "GAMES_LAST_7_DAYS", "IS_SEASON_START"]
 # da bi se ceo modul features.py ucitao, i pre nego sto Jana implementira
 # telo te funkcije
 HEAD_TO_HEAD_GAMES = 5
+
+# --- Ucitavanje paketica ---------------------------------------------------
+# Polazna vrednost. Memorija nije ogranicenje 
+# nego broj koraka gradijenta po epohi: 18092 primera daje 283 koraka.
+
+BATCH_SIZE = 64
 
 # --- Elo rejting -------------------------------------------------------
 # Vrednosti prate FiveThirtyEight-ovu metodologiju za NBA; K=20, prednost domaceg terena ~100 poena na Elo skali,

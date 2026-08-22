@@ -90,8 +90,18 @@ def add_calendar_features(df_team_view):
 
     # broj meceva u poslednjih 7 dana, bez tekuceg (closed="left" iskljucuje
     # desnu ivicu prozora, a to je upravo tekuci mec)
+    #
+    # min_periods=0 je obavezno. Za prozor zadat vremenskim rasponom pandas
+    # podrazumeva min_periods=1, pa kada je prethodni mec stariji od sedam dana
+    # - a to je svaki prvi mec sezone, gde je razmak oko pet meseci - prozor je
+    # prazan i count() vraca NaN umesto nule. Ispravno je nula: tim zaista
+    # nije odigrao nijedan mec u prethodnih sedam dana.
     def _games_last_7_days(group):
-        counts = group.set_index("GAME_DATE_EST")["GAME_ID"].rolling("7D", closed="left").count()
+        counts = (
+            group.set_index("GAME_DATE_EST")["GAME_ID"]
+            .rolling("7D", closed="left", min_periods=0)
+            .count()
+        )
         return pd.Series(counts.values, index=group.index)
 
     df_team_view["GAMES_LAST_7_DAYS"] = (
