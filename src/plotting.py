@@ -12,6 +12,19 @@ COLOR_WARNING = "#e34948"
 
 FIGURE_SIZE = (8, 6)
 
+# Redosled i boje modela su fiksirani i koriste se u svim zbirnim grafikama,
+# da isti model ima istu boju u svakoj svesci.
+MODEL_ORDER = ["M0 domacin", "M1 log. reg.", "M2 XGBoost", "M3 RNN", "M4 LSTM", "M5 GRU"]
+
+MODEL_COLORS = {
+    "M0 domacin": "#9e9e9e",
+    "M1 log. reg.": "#4c72b0",
+    "M2 XGBoost": "#dd8452",
+    "M3 RNN": "#937860",
+    "M4 LSTM": "#c44e52",
+    "M5 GRU": "#55a868",
+}
+
 
 def new_figure(title, x_label, y_label, figsize=FIGURE_SIZE):
     """Otvara novu figuru sa naslovom i obelezenim osama."""
@@ -25,3 +38,8 @@ def save_figure(file_name, dpi=150):
     """Cuva tekuci grafik u reports/figures/ za upotrebu u prezentaciji."""
     FIGURES_PATH.mkdir(parents=True, exist_ok=True)
     plt.savefig(FIGURES_PATH / file_name, dpi=dpi, bbox_inches="tight")
+
+
+def model_color(model_name):
+    """Vraca dogovorenu boju modela, sivu ako model nije u spisku."""
+    return MODEL_COLORS.get(model_name, "#9e9e9e")
