@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import (
+    AGGREGATE_FEATURE_COLUMNS,
     ELO_HOME_BONUS,
     ELO_INITIAL,
     ELO_K,
@@ -263,6 +264,33 @@ def add_standings_features(df_team_view, df_rankings):
         .sort_values(["TEAM_ID", "GAME_DATE_EST"])
         .reset_index(drop=True)
     )
+
+
+def build_aggregate_features(df_team_view, df_games, indices):
+    """Gradi ravnu tabelu agregatnih atributa za M1 i M2, po mecu.
+
+    Uzima tacno mecevi iz indices - isti skup redova koji vraca
+    build_sequences - tako da klasicni modeli i mreze budu ocenjeni nad
+    identicnim mecevima. Spaja se preko (GAME_ID, TEAM_ID), ne preko
+    IS_HOME - ta kolona je posle skaliranja realan broj, ne vise 0/1.
+    Svaka kolona iz AGGREGATE_FEATURE_COLUMNS se udvostrucuje sa HOME_/AWAY_
+    prefiksom; imena kolona ostaju citljiva radi tumacenja koeficijenata
+    logisticke regresije.
+    """
+    games = df_games.loc[indices]
+    by_game_team = df_team_view.set_index(["GAME_ID", "TEAM_ID"])[AGGREGATE_FEATURE_COLUMNS]
+
+    home_features = (
+        by_game_team.loc[list(zip(games["GAME_ID"], games["HOME_TEAM_ID"]))]
+        .add_prefix("HOME_")
+        .reset_index(drop=True)
+    )
+    away_features = (
+        by_game_team.loc[list(zip(games["GAME_ID"], games["VISITOR_TEAM_ID"]))]
+        .add_prefix("AWAY_")
+        .reset_index(drop=True)
+    )
+    return pd.concat([home_features, away_features], axis=1)
 
 
 def _split_record(record_column):
