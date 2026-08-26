@@ -87,6 +87,15 @@ CONTEXT_CALENDAR_COLUMNS = [
     "STANDINGS_ROAD_WIN_PCT", "STANDINGS_ROAD_WIN_PCT_MISSING",
 ]
 
+# agregatni atributi za klasicne modele M1 i M2 - isti CONTEXT_CALENDAR_COLUMNS
+# plus pokretni proseci. Nikad sirove RAW_STAT_COLUMNS/WON vrednosti bez
+# pomeraja - to bi bila statistika samog meca koji se predvidja
+AGGREGATE_FEATURE_COLUMNS = CONTEXT_CALENDAR_COLUMNS + [
+    f"{column}_ROLLING_{window}"
+    for window in ROLLING_WINDOWS
+    for column in RAW_STAT_COLUMNS + ["WON"]
+]
+
 # vrednost kojom se popunjavaju NaN u procentima pobeda bez dovoljno istorije
 # (prvi duel sa protivnikom, pocetak sezone pre prvog snimka tabele) - 0.5 jer
 # "nema podataka" nije ni prednost ni mana, uz pratecu _MISSING zastavicu koja
