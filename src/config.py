@@ -72,9 +72,35 @@ RAW_STAT_COLUMNS = ["PTS", "FG_PCT", "FT_PCT", "FG3_PCT", "AST", "REB"]
 # ne pokretni proseci, da bi mreza sama naucila vremenski obrazac
 SEQUENCE_FEATURE_COLUMNS = RAW_STAT_COLUMNS + ["WON", "IS_HOME"]
 
-# kalendarski atributi tima na dan tekuceg meca - poznati unapred (raspored
-# je poznat pre poceta), pa ne traze shift(1) kao pokretni proseci
-CONTEXT_CALENDAR_COLUMNS = ["REST_DAYS", "GAMES_LAST_7_DAYS", "IS_SEASON_START"]
+# atributi tima na dan tekuceg meca koji ne ulaze u sekvencu vec direktno u
+# kontekst - kalendarski (poznati unapred, ne traze shift(1)) i agregatni
+# (elo, dueli, tabela - vec su pred-meceve po konstrukciji funkcije koja ih
+# racuna). *_MISSING kolone prate atribute koji ponekad nemaju istoriju (prvi
+# duel sa protivnikom, pocetak sezone bez snimka tabele) - popunjavaju se u
+# add_head_to_head i add_standings_features, sa MISSING_RATE_FILL nize
+CONTEXT_CALENDAR_COLUMNS = [
+    "REST_DAYS", "GAMES_LAST_7_DAYS", "IS_SEASON_START",
+    "ELO",
+    "HEAD_TO_HEAD_WIN_PCT", "HEAD_TO_HEAD_WIN_PCT_MISSING",
+    "STANDINGS_WIN_PCT", "STANDINGS_WIN_PCT_MISSING",
+    "STANDINGS_HOME_WIN_PCT", "STANDINGS_HOME_WIN_PCT_MISSING",
+    "STANDINGS_ROAD_WIN_PCT", "STANDINGS_ROAD_WIN_PCT_MISSING",
+]
+
+# agregatni atributi za klasicne modele M1 i M2 - isti CONTEXT_CALENDAR_COLUMNS
+# plus pokretni proseci. Nikad sirove RAW_STAT_COLUMNS/WON vrednosti bez
+# pomeraja - to bi bila statistika samog meca koji se predvidja
+AGGREGATE_FEATURE_COLUMNS = CONTEXT_CALENDAR_COLUMNS + [
+    f"{column}_ROLLING_{window}"
+    for window in ROLLING_WINDOWS
+    for column in RAW_STAT_COLUMNS + ["WON"]
+]
+
+# vrednost kojom se popunjavaju NaN u procentima pobeda bez dovoljno istorije
+# (prvi duel sa protivnikom, pocetak sezone pre prvog snimka tabele) - 0.5 jer
+# "nema podataka" nije ni prednost ni mana, uz pratecu _MISSING zastavicu koja
+# modelu kaze da je ta polovina izmisljena, a ne izmerena ravnoteza
+MISSING_RATE_FILL = 0.5
 
 # koristi se kao podrazumevana vrednost u add_head_to_head - mora da postoji
 # da bi se ceo modul features.py ucitao, i pre nego sto Jana implementira

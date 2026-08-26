@@ -12,12 +12,14 @@ import numpy as np
 import pandas as pd
 
 from src.config import (
+    AGGREGATE_FEATURE_COLUMNS,
     ELO_HOME_BONUS,
     ELO_INITIAL,
     ELO_K,
     ELO_SEASON_REGRESSION,
     GAME_TYPE_REGULAR,
     HEAD_TO_HEAD_GAMES,
+    MISSING_RATE_FILL,
     RAW_STAT_COLUMNS,
     ROLLING_WINDOWS,
 )
@@ -171,7 +173,13 @@ def compute_elo(df_team_view):
 
 
 def add_head_to_head(df_team_view, n_last=HEAD_TO_HEAD_GAMES):
-    """Dodaje procenat pobeda protiv istog protivnika u poslednjih n duela."""
+    """Dodaje procenat pobeda protiv istog protivnika u poslednjih n duela.
+
+    Prvi duel sa nekim protivnikom nema istoriju (NaN). Popunjava se sa
+    MISSING_RATE_FILL, uz HEAD_TO_HEAD_WIN_PCT_MISSING koja modelu kaze da je
+    ta vrednost izmisljena, ne izmerena ravnoteza - inace bi 0.5 izgledalo
+    kao "podjednaki timovi", sto ovde niko nije izmerio.
+    """
     df_team_view = df_team_view.sort_values(
         ["TEAM_ID", "OPPONENT_TEAM_ID", "GAME_DATE_EST"]
     ).reset_index(drop=True)
@@ -179,9 +187,11 @@ def add_head_to_head(df_team_view, n_last=HEAD_TO_HEAD_GAMES):
 
     # isti obrazac kao pokretne statistike - shift(1) pa rolling, tako da
     # duel g zavisi iskljucivo od ranijih duela sa istim protivnikom
-    df_team_view["HEAD_TO_HEAD_WIN_PCT"] = grouped["WON"].transform(
+    win_pct = grouped["WON"].transform(
         lambda s: s.shift(1).rolling(n_last, min_periods=1).mean()
     )
+    df_team_view["HEAD_TO_HEAD_WIN_PCT_MISSING"] = win_pct.isna().astype(int)
+    df_team_view["HEAD_TO_HEAD_WIN_PCT"] = win_pct.fillna(MISSING_RATE_FILL)
     return df_team_view.sort_values(["TEAM_ID", "GAME_DATE_EST"]).reset_index(drop=True)
 
 
@@ -194,6 +204,11 @@ def add_standings_features(df_team_view, df_rankings):
 
     Kolone HOME_RECORD i ROAD_RECORD su tekst oblika "28-8" i rastavljaju
     se na broj pobeda i broj poraza, odnosno na procenat pobeda.
+
+    Mecevi pre prvog snimka tabele u sezoni nemaju stanje (NaN); STANDINGS_
+    HOME_WIN_PCT i STANDINGS_ROAD_WIN_PCT dodatno mogu biti NaN i posle toga,
+    dok tim jos nema odigran nijedan mec kod kuce ili u gostima (0/0). Sve tri
+    se popunjavaju sa MISSING_RATE_FILL, svaka sa svojom *_MISSING zastavicom.
     """
     df_rankings = df_rankings.copy()
     season_id = df_rankings["SEASON_ID"].astype(str)
@@ -221,6 +236,16 @@ def add_standings_features(df_team_view, df_rankings):
     ]
 
     df_team_view = df_team_view.sort_values("GAME_DATE_EST").reset_index(drop=True)
+
+    # merge_asof zahteva IDENTICAN tip za "by" kolone na obe strane. SEASON
+    # ovde gore prolazi kroz .astype(int), a taj je platformski zavisan (na
+    # Windowsu daje int32, na macOS/Linuxu int64) - pa spajanje puca sa
+    # "incompatible merge keys" iako su vrednosti iste. Eksplicitan int64
+    # na obe strane to uklanja bez obzira na platformu.
+    join_dtypes = {"TEAM_ID": "int64", "SEASON": "int64"}
+    df_team_view = df_team_view.astype(join_dtypes)
+    df_rankings_sorted = df_rankings_sorted.astype(join_dtypes)
+
     df_merged = pd.merge_asof(
         df_team_view,
         df_rankings_sorted,
@@ -230,11 +255,42 @@ def add_standings_features(df_team_view, df_rankings):
         direction="backward",
         allow_exact_matches=False,
     )
+    for column in standings_columns:
+        df_merged[f"{column}_MISSING"] = df_merged[column].isna().astype(int)
+        df_merged[column] = df_merged[column].fillna(MISSING_RATE_FILL)
+
     return (
         df_merged.drop(columns="STANDINGSDATE")
         .sort_values(["TEAM_ID", "GAME_DATE_EST"])
         .reset_index(drop=True)
     )
+
+
+def build_aggregate_features(df_team_view, df_games, indices):
+    """Gradi ravnu tabelu agregatnih atributa za M1 i M2, po mecu.
+
+    Uzima tacno mecevi iz indices - isti skup redova koji vraca
+    build_sequences - tako da klasicni modeli i mreze budu ocenjeni nad
+    identicnim mecevima. Spaja se preko (GAME_ID, TEAM_ID), ne preko
+    IS_HOME - ta kolona je posle skaliranja realan broj, ne vise 0/1.
+    Svaka kolona iz AGGREGATE_FEATURE_COLUMNS se udvostrucuje sa HOME_/AWAY_
+    prefiksom; imena kolona ostaju citljiva radi tumacenja koeficijenata
+    logisticke regresije.
+    """
+    games = df_games.loc[indices]
+    by_game_team = df_team_view.set_index(["GAME_ID", "TEAM_ID"])[AGGREGATE_FEATURE_COLUMNS]
+
+    home_features = (
+        by_game_team.loc[list(zip(games["GAME_ID"], games["HOME_TEAM_ID"]))]
+        .add_prefix("HOME_")
+        .reset_index(drop=True)
+    )
+    away_features = (
+        by_game_team.loc[list(zip(games["GAME_ID"], games["VISITOR_TEAM_ID"]))]
+        .add_prefix("AWAY_")
+        .reset_index(drop=True)
+    )
+    return pd.concat([home_features, away_features], axis=1)
 
 
 def _split_record(record_column):
