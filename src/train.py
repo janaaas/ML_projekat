@@ -8,12 +8,20 @@ primenjuje na jednom mestu, u predict_proba.
 import copy
 
 import numpy as np
+import pandas as pd
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from src.config import MODELS_PATH, RANDOM_STATE
+from src.config import (
+    DROPOUT_GRID,
+    HIDDEN_SIZE_GRID,
+    LEARNING_RATE_GRID,
+    MODELS_PATH,
+    RANDOM_STATE,
+)
+from src import evaluate, models
 
 
 def set_seed(seed=RANDOM_STATE):
@@ -60,6 +68,33 @@ def train_model(model, loader_train, loader_valid, epochs=100, patience=5, learn
 
     model.load_state_dict(best_state)
     return history
+
+
+def search_hyperparameters(loader_train, loader_valid, n_features, n_context, cell="lstm"):
+    """Pretrazuje mrezu vrednosti iz config.py i vraca tabelu poredjanu po roc_auc.
+
+    Sve tri mreze pozivaju ovu istu funkciju - razlikuje se samo parametar cell.
+    """
+    rezultati = []
+
+    for hidden_size in HIDDEN_SIZE_GRID:
+        for dropout in DROPOUT_GRID:
+            for learning_rate in LEARNING_RATE_GRID:
+                set_seed()
+                model = models.MatchPredictor(
+                    n_features, n_context, cell=cell, hidden_size=hidden_size, dropout=dropout
+                )
+                train_model(model, loader_train, loader_valid, learning_rate=learning_rate)
+                proba, y_true = predict_proba(model, loader_valid)
+
+                rezultati.append({
+                    "hidden_size": hidden_size,
+                    "dropout": dropout,
+                    "learning_rate": learning_rate,
+                    **evaluate.compute_metrics(y_true, proba),
+                })
+
+    return pd.DataFrame(rezultati).sort_values("roc_auc", ascending=False).reset_index(drop=True)
 
 
 def _run_epoch(model, loader, criterion, optimizer=None):
