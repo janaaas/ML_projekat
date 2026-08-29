@@ -56,6 +56,13 @@ def append_results(model_name, dataset_name, metrics):
     df_results[RESULT_COLUMNS].to_csv(RESULTS_FILE, index=False)
 
 
+def compute_class_report(y_true, y_pred):
+    """Preciznost, odziv i F1 po klasi."""
+    return sklearn_metrics.classification_report(
+        y_true, y_pred, target_names=["gost", "domacin"], digits=3
+    )
+
+
 def plot_confusion_matrix(y_true, y_pred, title):
     """Crta matricu konfuzije u dogovorenom izgledu."""
     matrix = sklearn_metrics.confusion_matrix(y_true, y_pred)

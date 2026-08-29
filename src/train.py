@@ -132,8 +132,6 @@ def _run_epoch(model, loader, criterion, optimizer=None):
 
 def _gradient_norm(model):
     """Vraca ukupnu L2 normu gradijenta preko svih parametara."""
-    # meri se, ne odseca - na ovom skupu norma ne prelazi 1.0, pa bi
-    # clip_grad_norm_ bio prag koji se nikad ne dostigne
     squares = [p.grad.detach().pow(2).sum() for p in model.parameters() if p.grad is not None]
     return torch.sqrt(torch.stack(squares).sum()).item()
 
