@@ -113,6 +113,16 @@ HEAD_TO_HEAD_GAMES = 5
 
 BATCH_SIZE = 64
 
+# --- Pretraga hiperparametara ----------------------------------------------
+# Ista mreza vrednosti za sve tri rekurentne mreze.
+#
+# Izabrane vrednosti se OVDE ne upisuju - one su rezultat merenja i smeju da se
+# razlikuju po mrezi. Ovde stoji prostor pretrage, u svesci ishod.
+
+HIDDEN_SIZE_GRID = (32, 64, 128)
+DROPOUT_GRID = (0.0, 0.15, 0.3)
+LEARNING_RATE_GRID = (3e-4, 1e-3, 3e-3)
+
 # --- Elo rejting -------------------------------------------------------
 # Vrednosti prate FiveThirtyEight-ovu metodologiju za NBA; K=20, prednost domaceg terena ~100 poena na Elo skali,
 # regresija ka proseku 1/3 na pocetku svake nove sezone.
