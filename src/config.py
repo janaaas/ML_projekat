@@ -87,6 +87,15 @@ CONTEXT_CALENDAR_COLUMNS = [
     "STANDINGS_ROAD_WIN_PCT", "STANDINGS_ROAD_WIN_PCT_MISSING",
 ]
 
+# agregatni atributi za klasicne modele M1 i M2 - isti CONTEXT_CALENDAR_COLUMNS
+# plus pokretni proseci. Nikad sirove RAW_STAT_COLUMNS/WON vrednosti bez
+# pomeraja - to bi bila statistika samog meca koji se predvidja
+AGGREGATE_FEATURE_COLUMNS = CONTEXT_CALENDAR_COLUMNS + [
+    f"{column}_ROLLING_{window}"
+    for window in ROLLING_WINDOWS
+    for column in RAW_STAT_COLUMNS + ["WON"]
+]
+
 # vrednost kojom se popunjavaju NaN u procentima pobeda bez dovoljno istorije
 # (prvi duel sa protivnikom, pocetak sezone pre prvog snimka tabele) - 0.5 jer
 # "nema podataka" nije ni prednost ni mana, uz pratecu _MISSING zastavicu koja
@@ -103,6 +112,16 @@ HEAD_TO_HEAD_GAMES = 5
 # nego broj koraka gradijenta po epohi: 18092 primera daje 283 koraka.
 
 BATCH_SIZE = 64
+
+# --- Pretraga hiperparametara ----------------------------------------------
+# Ista mreza vrednosti za sve tri rekurentne mreze.
+#
+# Izabrane vrednosti se OVDE ne upisuju - one su rezultat merenja i smeju da se
+# razlikuju po mrezi. Ovde stoji prostor pretrage, u svesci ishod.
+
+HIDDEN_SIZE_GRID = (32, 64, 128)
+DROPOUT_GRID = (0.0, 0.15, 0.3)
+LEARNING_RATE_GRID = (3e-4, 1e-3, 3e-3)
 
 # --- Elo rejting -------------------------------------------------------
 # Vrednosti prate FiveThirtyEight-ovu metodologiju za NBA; K=20, prednost domaceg terena ~100 poena na Elo skali,
