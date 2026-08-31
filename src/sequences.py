@@ -137,18 +137,31 @@ def fit_scaler(X_train):
     return scaler
 
 
-def assert_no_leakage(df_features, feature_source_date_column, game_date_column):
+def assert_no_leakage(df_features, feature_source_date_columns, game_date_column):
     """Sanitarna provera: nijedan atribut ne sme poticati iz buducnosti.
 
-    Za svaki mec potvrdjuje da je najkasniji datum iz kojeg poticu atributi
-    strogo manji od datuma tog meca. Ovo je dokaz ispravnosti na koji se
-    moze pokazati na odbrani, pa se poziva u svesci 02 i ostaje u njoj.
+    Za svaki mec i za svaku prosledjenu izvornu kolonu potvrdjuje da je
+    najkasniji datum iz kojeg poticu atributi strogo manji od datuma tog
+    meca. Ovo je dokaz ispravnosti na koji se moze pokazati na odbrani, pa
+    se poziva u svesci 02 i ostaje u njoj.
+
+    feature_source_date_columns moze biti jedno ime kolone ili lista imena -
+    LAST_GAME_DATE pokriva pokretne statistike i Elo (obe se azuriraju posle
+    svakog odigranog meca, istim datumom), LAST_HEAD_TO_HEAD_DATE
+    medjusobne duele, STANDINGS_SOURCE_DATE stanje na tabeli.
     """
-    # NaT (prvi mec tima, nema izvorni datum) je u poredjenju uvek False,
-    # sto je ispravno - nema atributa znaci nema ni curenja
-    is_leaking = df_features[feature_source_date_column] >= df_features[game_date_column]
-    n_leaking = int(is_leaking.sum())
-    assert n_leaking == 0, f"{n_leaking} meceva ima atribute iz buducnosti ili sa istog dana"
+    if isinstance(feature_source_date_columns, str):
+        feature_source_date_columns = [feature_source_date_columns]
+
+    for source_date_column in feature_source_date_columns:
+        # NaT (nema izvornog datuma - prvi mec tima, prvi duel sa
+        # protivnikom ili mec pre prvog snimka tabele) je u poredjenju uvek
+        # False, sto je ispravno - nema atributa znaci nema ni curenja
+        is_leaking = df_features[source_date_column] >= df_features[game_date_column]
+        n_leaking = int(is_leaking.sum())
+        assert n_leaking == 0, (
+            f"{n_leaking} meceva ima '{source_date_column}' iz buducnosti ili sa istog dana"
+        )
 
 
 class MatchSequenceDataset(Dataset):
