@@ -185,6 +185,11 @@ def add_head_to_head(df_team_view, n_last=HEAD_TO_HEAD_GAMES):
     ).reset_index(drop=True)
     grouped = df_team_view.groupby(["TEAM_ID", "OPPONENT_TEAM_ID"])
 
+    # datum prethodnog duela sa istim protivnikom - koristi se kao gornja
+    # granica u sanitarnoj proveri assert_no_leakage, isti obrazac kao
+    # LAST_GAME_DATE u add_rolling_stats
+    df_team_view["LAST_HEAD_TO_HEAD_DATE"] = grouped["GAME_DATE_EST"].shift(1)
+
     # isti obrazac kao pokretne statistike - shift(1) pa rolling, tako da
     # duel g zavisi iskljucivo od ranijih duela sa istim protivnikom
     win_pct = grouped["WON"].transform(
@@ -259,8 +264,11 @@ def add_standings_features(df_team_view, df_rankings):
         df_merged[f"{column}_MISSING"] = df_merged[column].isna().astype(int)
         df_merged[column] = df_merged[column].fillna(MISSING_RATE_FILL)
 
+    # STANDINGSDATE se zadrzava kao STANDINGS_SOURCE_DATE umesto da se
+    # izbaci - to je gornja granica koju sanitarna provera assert_no_leakage
+    # koristi za stanje na tabeli
     return (
-        df_merged.drop(columns="STANDINGSDATE")
+        df_merged.rename(columns={"STANDINGSDATE": "STANDINGS_SOURCE_DATE"})
         .sort_values(["TEAM_ID", "GAME_DATE_EST"])
         .reset_index(drop=True)
     )
