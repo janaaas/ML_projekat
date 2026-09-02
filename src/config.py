@@ -15,6 +15,10 @@ RAW_DATA_PATH = ROOT_DIR / "data" / "raw"
 FIGURES_PATH = ROOT_DIR / "reports" / "figures"
 RESULTS_FILE = ROOT_DIR / "reports" / "rezultati.csv"
 
+# pojedinacna semena, po jedan red na (model, skup, seed); rezultati.csv drzi
+# samo prosek
+SEED_RESULTS_FILE = ROOT_DIR / "reports" / "rasipanje-semena.csv"
+
 # pripremljeni tenzori iz sveske 02; sveska 04 ih samo ucitava umesto da
 # ponovo gradi sekvence
 PROCESSED_DATA_PATH = ROOT_DIR / "data" / "processed"
@@ -122,6 +126,17 @@ BATCH_SIZE = 64
 HIDDEN_SIZE_GRID = (32, 64, 128)
 DROPOUT_GRID = (0.0, 0.15, 0.3)
 LEARNING_RATE_GRID = (3e-4, 1e-3, 3e-3)
+
+# --- Semena za ponovljeno treniranje ---------------------------------------
+# Inicijalizacija tezina i redosled paketica su slucajni, pa jedno seme moze
+# prividno da izdvoji jednu mrezu. Zato se svaka mreza trenira vise puta i prijavljuje prosek.
+#
+# Ista semena za sve tri mreze.
+
+SEEDS = (7, 17, 27, 37, 47)
+
+# --- Dvostepena pretraga ----------------------------------------------------
+N_FINALISTS = 5
 
 # --- Elo rejting -------------------------------------------------------
 # Vrednosti prate FiveThirtyEight-ovu metodologiju za NBA; K=20, prednost domaceg terena ~100 poena na Elo skali,
