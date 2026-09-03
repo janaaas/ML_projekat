@@ -13,13 +13,17 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
 
 from src.config import (
+    BATCH_SIZE,
     DROPOUT_GRID,
     HIDDEN_SIZE_GRID,
     LEARNING_RATE_GRID,
     MODELS_PATH,
+    N_FINALISTS,
     RANDOM_STATE,
+    SEEDS,
 )
 from src import evaluate, models
 
@@ -95,6 +99,78 @@ def search_hyperparameters(loader_train, loader_valid, n_features, n_context, ce
                 })
 
     return pd.DataFrame(rezultati).sort_values("roc_auc", ascending=False).reset_index(drop=True)
+
+
+def train_over_seeds(dataset_train, dataset_valid, n_features, n_context, cell,
+                     hidden_size, dropout, learning_rate, seeds=SEEDS):
+    """Trenira istu postavku vise puta, po jednom za svako seme.
+
+    Sve tri mreze je pozivaju isto - razlikuju se samo cell i izmereni
+    hiperparametri.
+
+    Vraca listu recnika sa kljucevima seed, model, history i metrike, u
+    redosledu seeds.
+    """
+    runs = []
+
+    for seed in seeds:
+        set_seed(seed)
+        generator = torch.Generator().manual_seed(seed)
+        loader_train = DataLoader(
+            dataset_train, batch_size=BATCH_SIZE, shuffle=True, generator=generator
+        )
+        loader_valid = DataLoader(dataset_valid, batch_size=BATCH_SIZE, shuffle=False)
+
+        model = models.MatchPredictor(
+            n_features, n_context, cell=cell, hidden_size=hidden_size, dropout=dropout
+        )
+        history = train_model(model, loader_train, loader_valid, learning_rate=learning_rate)
+        proba, y_true = predict_proba(model, loader_valid)
+
+        runs.append({
+            "seed": seed,
+            "model": model,
+            "history": history,
+            "metrike": evaluate.compute_metrics(y_true, proba),
+        })
+
+    return runs
+
+
+def refine_hyperparameters(rezultati_pretrage, dataset_train, dataset_valid,
+                           n_features, n_context, cell="lstm",
+                           n_finalists=N_FINALISTS, seeds=SEEDS):
+    """Meri najbolje kandidate iz grube pretrage, ovaj put sa vise semena.
+
+    Vraca tabelu sa hiperparametrima, prosekom i rasipanjem po semenima,
+    poredjanu opadajuce po prosecnom roc_auc.
+    """
+    redovi = []
+
+    for _, kandidat in rezultati_pretrage.head(n_finalists).iterrows():
+        runs = train_over_seeds(
+            dataset_train, dataset_valid, n_features, n_context, cell,
+            hidden_size=int(kandidat["hidden_size"]),
+            dropout=float(kandidat["dropout"]),
+            learning_rate=float(kandidat["learning_rate"]),
+            seeds=seeds,
+        )
+        po_semenu = pd.DataFrame([run["metrike"] for run in runs])
+
+        redovi.append({
+            "hidden_size": int(kandidat["hidden_size"]),
+            "dropout": float(kandidat["dropout"]),
+            "learning_rate": float(kandidat["learning_rate"]),
+            # ddof=0 namerno: sveska rasipanje racuna preko np.std, pa bi
+            # podrazumevani pandas ddof=1 dao dva razlicita broja za istu
+            # velicinu - ista postavka, ista semena, drugo rasipanje
+            "tacnost": po_semenu["tacnost"].mean(),
+            "rasipanje": po_semenu["tacnost"].std(ddof=0),
+            "roc_auc": po_semenu["roc_auc"].mean(),
+            "roc_auc_rasipanje": po_semenu["roc_auc"].std(ddof=0),
+        })
+
+    return pd.DataFrame(redovi).sort_values("roc_auc", ascending=False).reset_index(drop=True)
 
 
 def _run_epoch(model, loader, criterion, optimizer=None):

@@ -1,7 +1,8 @@
 """Arhitekture rekurentnih mreza nad sekvencama meceva.
 
-Jedna klasa pokriva RNN, LSTM i GRU, jer se arhitektura ne menja - menja se
-samo tip celije.
+Jedna klasa pokriva RNN, LSTM i GRU: dvograna struktura, deljene tezine i
+izlazni sloj su isti, menja se samo tip celije. Hiperparametri se biraju
+nezavisno po mrezi.
 """
 
 import torch

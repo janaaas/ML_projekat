@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 from sklearn import calibration
 from sklearn import metrics as sklearn_metrics
 
-from src.config import RESULTS_FILE
+from src.config import RESULTS_FILE, SEED_RESULTS_FILE
 from src import plotting
 
 RESULT_COLUMNS = ["model", "skup", "tacnost", "roc_auc", "log_loss", "brier"]
@@ -54,6 +54,29 @@ def append_results(model_name, dataset_name, metrics):
 
     RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
     df_results[RESULT_COLUMNS].to_csv(RESULTS_FILE, index=False)
+
+
+def append_seed_results(model_name, dataset_name, seed, metrics):
+    """
+    Dodaje red u reports/rasipanje-semena.csv, jedan po (model, skup, seed).
+    """
+    row = {"model": model_name, "skup": dataset_name, "seed": seed, **metrics}
+    columns = ["model", "skup", "seed"] + RESULT_COLUMNS[2:]
+
+    if SEED_RESULTS_FILE.exists():
+        df_results = pd.read_csv(SEED_RESULTS_FILE)
+        is_same_row = (
+            (df_results["model"] == model_name)
+            & (df_results["skup"] == dataset_name)
+            & (df_results["seed"] == seed)
+        )
+
+        df_results = pd.concat([df_results[~is_same_row], pd.DataFrame([row])], ignore_index=True)
+    else:
+        df_results = pd.DataFrame([row])
+
+    SEED_RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    df_results[columns].to_csv(SEED_RESULTS_FILE, index=False)
 
 
 def compute_class_report(y_true, y_pred):
