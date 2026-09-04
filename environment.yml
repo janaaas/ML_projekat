@@ -10,9 +10,10 @@
 # ne postoji ni u jednoj verziji izmedju 1.1 i 2.5.1. Verzija 2.5.1 je prva
 # koja postoji za linux-64, linux-aarch64, osx-64, osx-arm64 i win-64.
 #
-# scipy je zakucan iako se ne uvozi direktno - tvrda je zavisnost i
-# scikit-learn-a i xgboost-a, a novije verzije traze numpy 2 i sudarile bi se
-# sa zakucanim numpy 1.26.
+# scipy je zakucan jer je tvrda zavisnost i scikit-learn-a i xgboost-a, a
+# sveske 05-02 i 05-03 ga uvoze i direktno, zbog scipy.stats.norm u racunu
+# Vilsonovog intervala. Novije verzije traze numpy 2 i sudarile bi se sa
+# zakucanim numpy 1.26.
 #
 # Python je 3.11, a ne 3.12: na 3.12 pip i conda prvo pokusavaju scipy 1.18,
 # koji trazi numpy 2. Na 3.11 je iskljucen po requires_python.
