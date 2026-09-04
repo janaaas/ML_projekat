@@ -42,8 +42,15 @@ GAME_TYPE_PLAY_IN = "5"
 KEPT_GAME_TYPES = (GAME_TYPE_REGULAR, GAME_TYPE_PLAYOFFS, GAME_TYPE_PLAY_IN)
 
 # Sezona 2019/20 je prekinuta 11.3.2020. i nastavljena u "mehuru" u Orlandu:
-# neutralni tereni, bez publike. Prednost domaceg terena tamo prakticno
-# nestaje, pa se mecevi pre i posle ovog datuma porede odvojeno.
+# neutralni tereni, bez publike. Ocekivanje je bilo da prednost domaceg terena
+# tamo nestane, pa se mecevi pre i posle ovog datuma porede odvojeno.
+#
+# Sveska 05-02 je to ocekivanje oborila: M0, koji je doslovna mera te prednosti,
+# pada svega 0.8 procentnih poena (55.1% -> 54.3%), a razlika nije statisticki
+# znacajna (z = 0.37, p = 0.71). Prednost domaceg terena, dakle, ne nestaje;
+# da li uopste slabi, ovi podaci ne mogu da kazu. Datum ostaje granica poredjenja
+# jer M1-M5 tu ipak gube 5-6 poena - ali iz drugog razloga, najverovatnije zbog
+# poremecenog ritma sezone koji kvari pokretne proseke i Elo.
 
 SEASON_SUSPENSION_DATE = "2020-03-11"
 
