@@ -1,0 +1,19 @@
+# virtuelno okruzenje
+.venv/
+
+# python
+__pycache__/
+*.pyc
+
+# jupyter
+.ipynb_checkpoints/
+
+# podaci - preuzimaju se sa Kaggle-a, ne komituju se (vidi data/raw/README.md)
+data/raw/*.csv
+data/processed/*
+!data/processed/.gitkeep
+
+# sistem
+.DS_Store
+.Rhistory
+

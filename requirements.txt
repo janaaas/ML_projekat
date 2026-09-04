@@ -1,0 +1,36 @@
+# Pip alternativa za environment.yml.
+#
+#     python -m venv .venv
+#     source .venv/bin/activate        # Windows: .venv\Scripts\activate
+#     pip install -r requirements.txt
+#
+# Radi na Linux-u, Windows-u i Apple Silicon Mac-u. Na Intel Mac-u ne radi -
+# PyTorch je prestao da objavljuje tockove za osx-64 na verziji 2.3.0. Za taj
+# slucaj koristiti environment.yml, jer conda-forge gradi i osx-64.
+#
+# Verzije su zakucane da bi se izlazi svesaka poklopili kod svih clanica tima
+# i kod pregledaca projekta.
+
+# Dopunski indeks, NE zamenski. Sa --index-url bi pip prestao da vidi PyPI, a
+# ovaj indeks ima samo 113 projekata - pandas, matplotlib, scikit-learn,
+# xgboost, seaborn, joblib, jupyterlab i ipywidgets na njemu ne postoje.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+numpy==1.26.4
+scipy==1.14.1
+pandas==2.2.3
+matplotlib==3.9.2
+seaborn==0.13.2
+scikit-learn==1.5.2
+xgboost==2.1.3
+joblib==1.4.2
+tqdm==4.66.5
+jupyterlab==4.2.5
+ipywidgets==8.1.5
+
+# Samo na Linux-u x86_64 podrazumevani tocak sa PyPI-ja nosi CUDA 12.1 i
+# jedanaest nvidia paketa, ukupno oko 2.7 GB. Tamo se trazi +cpu varijanta.
+# Windows i macOS tockovi su vec CPU-only i NEMAJU +cpu sufiks, pa bi ista
+# linija na njima pukla.
+torch==2.5.1+cpu ; sys_platform == "linux" and platform_machine == "x86_64"
+torch==2.5.1     ; sys_platform != "linux" or platform_machine != "x86_64"

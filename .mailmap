@@ -1,0 +1,14 @@
+# Objedinjavanje duplih git identiteta. Komitovi napravljeni kroz GitHub
+# nose noreply adresu i korisnicko ime umesto punog imena, pa bi
+# `git shortlog -sn` bez ovog fajla prikazao sest osoba umesto tri.
+#
+# Format: Kanonsko Ime <kanonska adresa> <adresa koja se preslikava>
+
+Jana Stojanović <jana10stojanovic@gmail.com> <jana10stojanovic@gmail.com>
+Jana Stojanović <jana10stojanovic@gmail.com> <96352268+janaaas@users.noreply.github.com>
+
+Mina Velebit <minavelebit@gmail.com> <minavelebit@gmail.com>
+Mina Velebit <minavelebit@gmail.com> <152044378+minavelebit@users.noreply.github.com>
+
+Mina Kovandžić <kovandzicmina@gmail.com> <kovandzicmina@gmail.com>
+Mina Kovandžić <kovandzicmina@gmail.com> <101215562+minakovandzic@users.noreply.github.com>
